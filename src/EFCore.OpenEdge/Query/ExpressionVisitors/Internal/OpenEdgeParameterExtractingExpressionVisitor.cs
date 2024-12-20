@@ -1,74 +1,73 @@
-﻿using System.Linq;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
+using System;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors.Internal;
-using Microsoft.EntityFrameworkCore.Query.Internal;
-using Remotion.Linq.Parsing.ExpressionVisitors.TreeEvaluation;
 
-namespace EntityFrameworkCore.OpenEdge.Query.ExpressionVisitors.Internal
+namespace EntityFrameworkCore.OpenEdge.Query.ExpressionVisitors.Internal;
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+public class OpenEdgeParameterExtractingExpressionVisitor : ExpressionTreeFuncletizer
 {
-    public class OpenEdgeParameterExtractingExpressionVisitor : ParameterExtractingExpressionVisitor
+    public OpenEdgeParameterExtractingExpressionVisitor(
+        IModel model,
+        IEvaluatableExpressionFilter evaluatableExpressionFilter,
+        Type contextType,
+        IDiagnosticsLogger<DbLoggerCategory.Query> logger,
+        bool generateContextAccessors = false)
+        : base(model, evaluatableExpressionFilter, contextType, generateContextAccessors, logger)
     {
-        public OpenEdgeParameterExtractingExpressionVisitor(IEvaluatableExpressionFilter evaluatableExpressionFilter,
-            IParameterValues parameterValues,
-            IDiagnosticsLogger<DbLoggerCategory.Query> logger,
-            DbContext context,
-            bool parameterize, bool
-                generateContextAccessors = false)
-            : base(evaluatableExpressionFilter, parameterValues, logger, context, parameterize, generateContextAccessors)
-        {
-        }
 
-        protected Expression VisitNewMember(MemberExpression memberExpression)
+    }
+
+    protected Expression VisitNewMember(MemberExpression memberExpression)
+    {
+        if (memberExpression.Expression is ConstantExpression constant
+            && constant.Value != null)
         {
-            if (memberExpression.Expression is ConstantExpression constant
-                && constant.Value != null)
+            switch (memberExpression.Member.MemberType)
             {
-                switch (memberExpression.Member.MemberType)
-                {
-                    case MemberTypes.Field:
-                        return Expression.Constant(constant.Value.GetType().GetField(memberExpression.Member.Name).GetValue(constant.Value));
+                case MemberTypes.Field:
+                    return Expression.Constant(constant.Value.GetType().GetField(memberExpression.Member.Name).GetValue(constant.Value));
 
-                    case MemberTypes.Property:
-                        var propertyInfo = constant.Value.GetType().GetProperty(memberExpression.Member.Name);
-                        if (propertyInfo == null)
-                        {
-                            break;
-                        }
+                case MemberTypes.Property:
+                    var propertyInfo = constant.Value.GetType().GetProperty(memberExpression.Member.Name);
+                    if (propertyInfo == null)
+                    {
+                        break;
+                    }
 
-                        return Expression.Constant(propertyInfo.GetValue(constant.Value));
-                }
+                    return Expression.Constant(propertyInfo.GetValue(constant.Value));
             }
-
-            return base.VisitMember(memberExpression);
         }
 
-        protected override Expression VisitNew(NewExpression node)
+        return base.VisitMember(memberExpression);
+    }
+
+    protected override Expression VisitNew(NewExpression node)
+    {
+        var memberArguments = node.Arguments
+            .Select(m => m is MemberExpression mem ? VisitNewMember(mem) : Visit(m))
+            .ToList();
+
+        var newNode = node.Update(memberArguments);
+
+        return newNode;
+    }
+
+    protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
+    {
+        if (methodCallExpression.Method.Name.Equals("Take", StringComparison.OrdinalIgnoreCase)
+         || methodCallExpression.Method.Name.Equals("Skip", StringComparison.OrdinalIgnoreCase))
         {
-            var memberArguments = node.Arguments
-                .Select(m => m is MemberExpression mem ? VisitNewMember(mem) : Visit(m))
-                .ToList();
-
-            var newNode = node.Update(memberArguments);
-
-            return newNode;
+            return methodCallExpression;
         }
 
-        protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
-        {
-            if (methodCallExpression.Method.Name == "Take")
-            {
-                return methodCallExpression;
-            }
-
-            if (methodCallExpression.Method.Name == "Skip")
-            {
-                return methodCallExpression;
-            }
-
-            return base.VisitMethodCall(methodCallExpression);
-        }
+        return base.VisitMethodCall(methodCallExpression);
     }
 }
+#pragma warning restore EF1001 // Internal EF Core API usage.

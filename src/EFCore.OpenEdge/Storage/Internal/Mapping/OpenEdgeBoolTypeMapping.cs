@@ -1,18 +1,16 @@
-﻿using System.Data;
-using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.EntityFrameworkCore.Storage;
 
-namespace EntityFrameworkCore.OpenEdge.Storage.Internal.Mapping
+namespace EntityFrameworkCore.OpenEdge.Storage.Internal.Mapping;
+
+public class OpenEdgeBoolTypeMapping : BoolTypeMapping
 {
-    public class OpenEdgeBoolTypeMapping : BoolTypeMapping
+    public OpenEdgeBoolTypeMapping()
+        : base("bit")
     {
-        public OpenEdgeBoolTypeMapping() 
-            : base("bit")
-        {
-        }
+    }
 
-        protected OpenEdgeBoolTypeMapping(RelationalTypeMappingParameters parameters) 
-            : base(parameters)
-        {
-        }
+    protected OpenEdgeBoolTypeMapping(RelationalTypeMappingParameters parameters)
+        : base(parameters)
+    {
     }
 }

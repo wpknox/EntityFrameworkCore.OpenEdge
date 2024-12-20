@@ -2,16 +2,10 @@
 using System.Data.Odbc;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace EntityFrameworkCore.OpenEdge.Storage
-{
-    public class OpenEdgeRelationalConnection : RelationalConnection, IOpenEdgeRelationalConnection
-    {
-        public OpenEdgeRelationalConnection(RelationalConnectionDependencies dependencies) 
-            : base(dependencies)
-        {
-        }
+namespace EntityFrameworkCore.OpenEdge.Storage;
 
-        protected override DbConnection CreateDbConnection()
-            => new OdbcConnection(ConnectionString);
-    }
+public class OpenEdgeRelationalConnection(RelationalConnectionDependencies dependencies) : RelationalConnection(dependencies), IOpenEdgeRelationalConnection
+{
+    protected override DbConnection CreateDbConnection()
+        => new OdbcConnection(ConnectionString);
 }

@@ -1,17 +1,13 @@
-using Microsoft.EntityFrameworkCore.Query.Expressions;
-using Microsoft.EntityFrameworkCore.Query.Sql;
+using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 
-namespace EntityFrameworkCore.OpenEdge.Query.Sql.Internal
+namespace EntityFrameworkCore.OpenEdge.Query.Sql.Internal;
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+public class OpenEdgeSqlGeneratorFactory(
+    QuerySqlGeneratorDependencies dependencies) : QuerySqlGeneratorFactory(dependencies)
 {
-    public class OpenEdgeSqlGeneratorFactory : QuerySqlGeneratorFactoryBase
-    {
-        public OpenEdgeSqlGeneratorFactory(
-            QuerySqlGeneratorDependencies dependencies)
-            : base(dependencies)
-        {
-        }
-
-        public override IQuerySqlGenerator CreateDefault(SelectExpression selectExpression)
-            => new OpenEdgeSqlGenerator(Dependencies, selectExpression);
-    }
+    public override QuerySqlGenerator Create()
+        => new OpenEdgeSqlGenerator(Dependencies);
 }
+#pragma warning restore EF1001 // Internal EF Core API usage.

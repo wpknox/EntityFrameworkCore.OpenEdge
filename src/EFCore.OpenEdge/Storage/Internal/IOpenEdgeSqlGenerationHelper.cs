@@ -1,8 +1,7 @@
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace EntityFrameworkCore.OpenEdge.Storage.Internal
+namespace EntityFrameworkCore.OpenEdge.Storage.Internal;
+
+public interface IOpenEdgeSqlGenerationHelper : ISqlGenerationHelper
 {
-    public interface IOpenEdgeSqlGenerationHelper : ISqlGenerationHelper
-    {
-    }
 }

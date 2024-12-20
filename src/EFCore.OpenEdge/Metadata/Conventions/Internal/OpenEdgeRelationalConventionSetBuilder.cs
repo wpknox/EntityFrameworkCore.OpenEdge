@@ -1,11 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 
-namespace EntityFrameworkCore.OpenEdge.Metadata.Conventions.Internal
+namespace EntityFrameworkCore.OpenEdge.Metadata.Conventions.Internal;
+
+public class OpenEdgeRelationalConventionSetBuilder(ProviderConventionSetBuilderDependencies dependencies, RelationalConventionSetBuilderDependencies relationalDependencies)
+    : RelationalConventionSetBuilder(dependencies, relationalDependencies)
 {
-    public class OpenEdgeRelationalConventionSetBuilder : RelationalConventionSetBuilder
-    {
-        public OpenEdgeRelationalConventionSetBuilder(RelationalConventionSetBuilderDependencies dependencies) : base(dependencies)
-        {
-        }
-    }
 }

@@ -1,160 +1,126 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using EntityFrameworkCore.OpenEdge.Extensions;
+﻿using EntityFrameworkCore.OpenEdge.Extensions;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
-namespace EntityFrameworkCore.OpenEdge.Update
+namespace EntityFrameworkCore.OpenEdge.Update;
+
+public class OpenEdgeUpdateSqlGenerator(UpdateSqlGeneratorDependencies dependencies) : UpdateSqlGenerator(dependencies), IOpenEdgeUpdateSqlGenerator
 {
-    public class OpenEdgeUpdateSqlGenerator : UpdateSqlGenerator, IOpenEdgeUpdateSqlGenerator
+    protected void AppendValues(StringBuilder commandStringBuilder, IReadOnlyList<IColumnModification> operations)
     {
-        public OpenEdgeUpdateSqlGenerator(UpdateSqlGeneratorDependencies dependencies) : base(dependencies)
-        {
-        }
+        bool useLiterals = true;
 
-        protected override void AppendRowsAffectedWhereCondition(StringBuilder commandStringBuilder, int expectedRowsAffected)
+        if (operations.Count > 0)
         {
             commandStringBuilder
-                .Append("1 = 1");
-        }
-
-        protected override void AppendIdentityWhereCondition(StringBuilder commandStringBuilder, ColumnModification columnModification)
-        {
-            commandStringBuilder
-                .Append("1 = 1");
-        }
-
-
-        protected override void AppendValues(StringBuilder commandStringBuilder, IReadOnlyList<ColumnModification> operations)
-        {
-            bool useLiterals = true;
-
-            if (operations.Count > 0)
-            {
-                commandStringBuilder
-                    .Append("(")
-                    .AppendJoin(
-                        operations,
-                        SqlGenerationHelper,
-                     
-                        (sb, o, helper) =>
-                        {
-                            if (useLiterals)
-                            {
-                                AppendSqlLiteral(sb, o.Value, o.Property);
-                            }
-                            else
-                            {
-                                // Use '?' rather than named parameters
-                                AppendParameter(sb, o);
-                            }
-                        })
-                    .Append(")");
-            }
-        }
-
-        private void AppendParameter(StringBuilder commandStringBuilder, ColumnModification modification)
-        {
-            commandStringBuilder.Append(modification.IsWrite ? "?" : "DEFAULT");
-        }
-
-        private void AppendSqlLiteral(StringBuilder commandStringBuilder, object value, IProperty property)
-        {
-            var mapping = property != null
-                ? Dependencies.TypeMappingSource.FindMapping(property)
-                : null;
-            mapping = mapping ?? Dependencies.TypeMappingSource.GetMappingForValue(value);
-            commandStringBuilder.Append(mapping.GenerateProviderValueSqlLiteral(value));
-        }
-
-
-        protected override void AppendUpdateCommandHeader(StringBuilder commandStringBuilder, string name, string schema,
-            IReadOnlyList<ColumnModification> operations)
-        {
-            commandStringBuilder.Append("UPDATE ");
-            SqlGenerationHelper.DelimitIdentifier(commandStringBuilder, name, schema);
-            commandStringBuilder.Append(" SET ")
+                .Append('(')
                 .AppendJoin(
                     operations,
                     SqlGenerationHelper,
                     (sb, o, helper) =>
                     {
-                        helper.DelimitIdentifier(sb, o.ColumnName);
-                        sb.Append(" = ");
-                        if (!o.UseCurrentValueParameter)
+                        if (useLiterals)
                         {
                             AppendSqlLiteral(sb, o.Value, o.Property);
                         }
                         else
                         {
-                            sb.Append("?");
+                            // Use '?' rather than named parameters
+                            AppendParameter(sb, o);
                         }
-                    });
+                    })
+                .Append(')');
         }
+    }
 
-        protected override void AppendWhereCondition(StringBuilder commandStringBuilder, ColumnModification columnModification,
-            bool useOriginalValue)
+    private static void AppendParameter(StringBuilder commandStringBuilder, IColumnModification modification)
+    {
+        commandStringBuilder.Append(modification.IsWrite ? "?" : "DEFAULT");
+    }
+
+    private void AppendSqlLiteral(StringBuilder commandStringBuilder, object value, IProperty property)
+    {
+        var mapping = property != null
+            ? Dependencies.TypeMappingSource.FindMapping(property)
+            : null;
+        mapping ??= Dependencies.TypeMappingSource.GetMappingForValue(value);
+        commandStringBuilder.Append(mapping.GenerateProviderValueSqlLiteral(value));
+    }
+
+
+    protected override void AppendUpdateCommandHeader(StringBuilder commandStringBuilder, string name, string schema,
+        IReadOnlyList<IColumnModification> operations)
+    {
+        commandStringBuilder.Append("UPDATE ");
+        SqlGenerationHelper.DelimitIdentifier(commandStringBuilder, name, schema);
+        commandStringBuilder.Append(" SET ")
+            .AppendJoin(
+                operations,
+                SqlGenerationHelper,
+                (sb, o, helper) =>
+                {
+                    helper.DelimitIdentifier(sb, o.ColumnName);
+                    sb.Append(" = ");
+                    if (!o.UseCurrentValueParameter)
+                    {
+                        AppendSqlLiteral(sb, o.Value, o.Property);
+                    }
+                    else
+                    {
+                        sb.Append('?');
+                    }
+                });
+    }
+
+    protected override void AppendWhereCondition(StringBuilder commandStringBuilder, IColumnModification columnModification,
+        bool useOriginalValue)
+    {
+        SqlGenerationHelper.DelimitIdentifier(commandStringBuilder, columnModification.ColumnName);
+
+        var parameterValue = useOriginalValue
+            ? columnModification.OriginalValue
+            : columnModification.Value;
+
+        if (parameterValue == null)
         {
-            SqlGenerationHelper.DelimitIdentifier(commandStringBuilder, columnModification.ColumnName);
-
-            var parameterValue = useOriginalValue
-                ? columnModification.OriginalValue
-                : columnModification.Value;
-
-            if (parameterValue == null)
+            base.AppendWhereCondition(commandStringBuilder, columnModification, useOriginalValue);
+        }
+        else
+        {
+            commandStringBuilder.Append(" = ");
+            if (!columnModification.UseCurrentValueParameter
+                && !columnModification.UseOriginalValueParameter)
             {
                 base.AppendWhereCondition(commandStringBuilder, columnModification, useOriginalValue);
             }
             else
             {
-                commandStringBuilder.Append(" = ");
-                if (!columnModification.UseCurrentValueParameter
-                    && !columnModification.UseOriginalValueParameter)
-                {
-                    base.AppendWhereCondition(commandStringBuilder, columnModification, useOriginalValue);
-                }
-                else
-                {
-                    commandStringBuilder.Append("?");
-                }
+                commandStringBuilder.Append('?');
             }
         }
+    }
 
-        public override ResultSetMapping AppendInsertOperation(StringBuilder commandStringBuilder, ModificationCommand command,
-            int commandPosition)
-        {
+    public override ResultSetMapping AppendInsertOperation(StringBuilder commandStringBuilder, IReadOnlyModificationCommand command, int commandPosition)
+        => AppendInsertOperation(commandStringBuilder, command, commandPosition, out _);
 
-            var name = command.TableName;
-            var schema = command.Schema;
-            var operations = command.ColumnModifications;
+    public override ResultSetMapping AppendInsertOperation(StringBuilder commandStringBuilder, IReadOnlyModificationCommand command, int commandPosition, out bool requiresTransaction)
+    {
+        var name = command.TableName;
+        var schema = command.Schema;
+        var operations = command.ColumnModifications;
 
-            var writeOperations = operations.Where(o => o.IsWrite)
-                .Where(o => o.ColumnName != "rowid")
-                .ToList();
-                     
-            AppendInsertCommand(commandStringBuilder, name, schema, writeOperations);
-
-            return ResultSetMapping.NoResultSet;
-        }
-
-        public override ResultSetMapping AppendUpdateOperation(StringBuilder commandStringBuilder, ModificationCommand command,
-            int commandPosition)
-        {
-            var name = command.TableName;
-            var schema = command.Schema;
-            var operations = command.ColumnModifications;
-
-            var writeOperations = operations.Where(o => o.IsWrite).ToList();
-            var conditionOperations = operations.Where(o => o.IsCondition).ToList();
-
-            AppendUpdateCommand(commandStringBuilder, name, schema, writeOperations, conditionOperations);
-
-            return AppendSelectAffectedCountCommand(commandStringBuilder, name, schema, commandPosition);
-        }
+        // the override is because of the writeOperations here
+        var writeOperations = operations.Where(o => o.IsWrite)
+            .Where(o => !o.ColumnName.Equals("rowid", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var readOperations = operations.Where(o => o.IsRead).ToList();
+        AppendInsertCommand(commandStringBuilder, name, schema, writeOperations, readOperations);
+        requiresTransaction = false;
+        return readOperations.Count > 0 ? ResultSetMapping.LastInResultSet : ResultSetMapping.NoResults;
     }
 }

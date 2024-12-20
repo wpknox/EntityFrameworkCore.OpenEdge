@@ -1,8 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Update;
 
-namespace EntityFrameworkCore.OpenEdge.Update
+namespace EntityFrameworkCore.OpenEdge.Update;
+
+public interface IOpenEdgeUpdateSqlGenerator :IUpdateSqlGenerator
 {
-    public interface IOpenEdgeUpdateSqlGenerator :IUpdateSqlGenerator
-    {
-    }
 }

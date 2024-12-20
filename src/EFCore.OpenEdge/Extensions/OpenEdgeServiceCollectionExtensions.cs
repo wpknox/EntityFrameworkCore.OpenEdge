@@ -9,47 +9,45 @@ using EntityFrameworkCore.OpenEdge.Storage.Internal.Mapping;
 using EntityFrameworkCore.OpenEdge.Update;
 using EntityFrameworkCore.OpenEdge.Update.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.Query.ExpressionTranslators;
 using Microsoft.EntityFrameworkCore.Query.Internal;
-using Microsoft.EntityFrameworkCore.Query.Sql;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.EntityFrameworkCore.Update.Internal;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EntityFrameworkCore.OpenEdge.Extensions
+namespace EntityFrameworkCore.OpenEdge.Extensions;
+
+public static class OpenEdgeServiceCollectionExtensions
 {
-    public static class OpenEdgeServiceCollectionExtensions
+    public static IServiceCollection AddEntityFrameworkOpenEdge(this IServiceCollection serviceCollection)
     {
-        public static IServiceCollection AddEntityFrameworkOpenEdge(this IServiceCollection serviceCollection)
-        {
-            var builder = new EntityFrameworkRelationalServicesBuilder(serviceCollection)
-                .TryAdd<IDatabaseProvider, DatabaseProvider<OpenEdgeOptionsExtension>>()
-                .TryAdd<IRelationalTypeMappingSource, OpenEdgeTypeMappingSource>()
-                .TryAdd<ISqlGenerationHelper, OpenEdgeSqlGenerationHelper>()
-                .TryAdd<IConventionSetBuilder, OpenEdgeRelationalConventionSetBuilder>()
-                .TryAdd<IUpdateSqlGenerator, OpenEdgeUpdateSqlGenerator>()
-                .TryAdd<ISingletonUpdateSqlGenerator, OpenEdgeUpdateSqlGenerator>()
-                .TryAdd<IModificationCommandBatchFactory, OpenEdgeModificationCommandBatchFactory>()
-                .TryAdd<IRelationalConnection>(p => p.GetService<IOpenEdgeRelationalConnection>())
-                .TryAdd<IRelationalResultOperatorHandler, OpenEdgeResultOperatorHandler>()
-                .TryAdd<IQueryModelGenerator, OpenEdgeQueryModelGenerator>()
+#pragma warning disable EF1001 // Internal EF Core API usage.
+        var builder = new EntityFrameworkRelationalServicesBuilder(serviceCollection)
+            .TryAdd<IBatchExecutor, BatchExecutor>()
+            .TryAdd<IAsyncQueryProvider, EntityQueryProvider>()
+            .TryAdd<IQueryCompiler, QueryCompiler>()
+            .TryAdd<IDatabaseProvider, DatabaseProvider<OpenEdgeOptionsExtension>>()
+            .TryAdd<IRelationalTypeMappingSource, OpenEdgeTypeMappingSource>()
+            .TryAdd<ISqlGenerationHelper, OpenEdgeSqlGenerationHelper>()
+            .TryAdd<IEvaluatableExpressionFilter, RelationalEvaluatableExpressionFilter>()
+            .TryAdd<RelationalConventionSetBuilder, OpenEdgeRelationalConventionSetBuilder>()
+            .TryAdd<IUpdateSqlGenerator, OpenEdgeUpdateSqlGenerator>()
+            .TryAdd<IRelationalConnection>(p => p.GetService<IOpenEdgeRelationalConnection>())
+            .TryAdd<IQueryTranslationPreprocessorFactory, OpenEdgeQueryTranslationPreprocessorFactory>()
+            .TryAdd<IMemberTranslatorProvider, OpenEdgeCompositeMemberTranslator>()
+            .TryAdd<IMethodCallTranslatorProvider, OpenEdgeCompositeMethodCallTranslator>()
+            .TryAdd<IQuerySqlGeneratorFactory, OpenEdgeSqlGeneratorFactory>()
+            .TryAdd<IModificationCommandBatchFactory, OpenEdgeModificationCommandBatchFactory>()
 
-                .TryAdd<IBatchExecutor, BatchExecutor>()
+            .TryAddProviderSpecificServices(b => b
+                .TryAddScoped<IOpenEdgeUpdateSqlGenerator, OpenEdgeUpdateSqlGenerator>()
+                .TryAddScoped<IOpenEdgeRelationalConnection, OpenEdgeRelationalConnection>()); ;
+#pragma warning restore EF1001 // Internal EF Core API usage.
 
-                .TryAdd<IMemberTranslator, OpenEdgeCompositeMemberTranslator>()
-                .TryAdd<ICompositeMethodCallTranslator, OpenEdgeCompositeMethodCallTranslator>()
-                .TryAdd<IQuerySqlGeneratorFactory, OpenEdgeSqlGeneratorFactory>()
-                
-                .TryAddProviderSpecificServices(b => b
-                    .TryAddScoped<IOpenEdgeUpdateSqlGenerator, OpenEdgeUpdateSqlGenerator>()
-                    .TryAddScoped<IOpenEdgeRelationalConnection, OpenEdgeRelationalConnection>()); ;
-
-            builder.TryAddCoreServices();
-            return serviceCollection;
-        }
-
+        builder.TryAddCoreServices();
+        return serviceCollection;
     }
+
 }

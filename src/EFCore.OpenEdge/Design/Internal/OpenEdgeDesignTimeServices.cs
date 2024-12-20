@@ -5,16 +5,15 @@ using Microsoft.EntityFrameworkCore.Scaffolding;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EntityFrameworkCore.OpenEdge.Design.Internal
+namespace EntityFrameworkCore.OpenEdge.Design.Internal;
+
+public class OpenEdgeDesignTimeServices : IDesignTimeServices
 {
-    public class OpenEdgeDesignTimeServices : IDesignTimeServices
-    {
-        public void ConfigureDesignTimeServices(IServiceCollection serviceCollection)
-            => serviceCollection
-                .AddSingleton<IRelationalTypeMappingSource, OpenEdgeTypeMappingSource>()
-                .AddSingleton<IDatabaseModelFactory, OpenEdgeDatabaseModelFactory>()
-                .AddSingleton<IProviderConfigurationCodeGenerator, OpenEdgeCodeGenerator>()
-                .AddSingleton<IAnnotationCodeGenerator, OpenEdgeAnnotationCodeGenerator>()
-        ;
-    }
+    public void ConfigureDesignTimeServices(IServiceCollection serviceCollection)
+        => serviceCollection
+            .AddSingleton<IRelationalTypeMappingSource, OpenEdgeTypeMappingSource>()
+            .AddSingleton<IDatabaseModelFactory, OpenEdgeDatabaseModelFactory>()
+            .AddSingleton<IProviderConfigurationCodeGenerator, OpenEdgeCodeGenerator>()
+            .AddSingleton<IAnnotationCodeGenerator, OpenEdgeAnnotationCodeGenerator>()
+    ;
 }
