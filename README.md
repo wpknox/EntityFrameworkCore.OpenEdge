@@ -48,7 +48,7 @@ From the Nuget Package Manager Console run this command (replacing the connectio
 
 ## Gotchas
 
-OpenEdge Databases are a bit different when it comes to primary keys. Ie. there aren’t any “real” primary keys. There are primary indexes but they do _not_ have to be unique which causes issues with EFCore (which the provider can’t circumvent). EFCore entity tracking requires all primary keys to be unique, otherwise the materialised entity objects will conflict. The only thing that is close to a primary key (if there is no unique, primary index available) in OpenEdge is the “rowid”. You can expose the rowid and use that as the primary key.
+OpenEdge Databases are a bit different when it comes to primary keys. i.e. there aren’t any “real” primary keys. There are primary indexes, but they do _not_ have to be unique which causes issues with EFCore (which the provider can’t circumvent). EFCore entity tracking requires all primary keys to be unique, otherwise the materialised entity objects will conflict. The only thing that is close to a primary key (if there is no unique, primary index available) in OpenEdge is the “rowid”. You can expose the rowid and use that as the primary key.
 
 Example:
 

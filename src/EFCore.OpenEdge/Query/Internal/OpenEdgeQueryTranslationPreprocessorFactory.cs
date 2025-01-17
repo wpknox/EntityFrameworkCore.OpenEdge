@@ -7,7 +7,7 @@ public class OpenEdgeQueryTranslationPreprocessorFactory(QueryTranslationPreproc
 {
     protected QueryTranslationPreprocessorDependencies Dependencies { get; } = dependencies;
 
-    protected RelationalQueryTranslationPreprocessorDependencies RelationalDependencies = relationalDependencies;
+    protected readonly RelationalQueryTranslationPreprocessorDependencies RelationalDependencies = relationalDependencies;
 
     public QueryTranslationPreprocessor Create(QueryCompilationContext queryCompilationContext)
         => new OpenEdgeQueryTranslationPreprocessor(Dependencies, RelationalDependencies, queryCompilationContext);

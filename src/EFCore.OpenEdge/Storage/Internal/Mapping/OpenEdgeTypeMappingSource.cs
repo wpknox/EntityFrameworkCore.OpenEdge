@@ -7,7 +7,7 @@ namespace EntityFrameworkCore.OpenEdge.Storage.Internal.Mapping;
 
 public class OpenEdgeTypeMappingSource : RelationalTypeMappingSource
 {
-    private const int VarcharMaxSize = 32000;
+    private const int VARCHAR_MAX_SIZE = 32000;
 
     private readonly DateTimeTypeMapping _datetime = new("datetime", DbType.DateTime);
     private readonly DateTimeOffsetTypeMapping _datetimeOffset = new("datetime-tz", DbType.DateTimeOffset);
@@ -113,8 +113,8 @@ public class OpenEdgeTypeMappingSource : RelationalTypeMappingSource
         if (storeTypeName != null)
         {
             if (clrType == typeof(float)
-                && mappingInfo.Size != null
-                && mappingInfo.Size <= 24
+                && mappingInfo.Size is <= 24
+                && storeTypeNameBase != null
                 && (storeTypeNameBase.Equals("float", StringComparison.OrdinalIgnoreCase)
                     || storeTypeNameBase.Equals("double precision", StringComparison.OrdinalIgnoreCase)))
             {
@@ -122,7 +122,7 @@ public class OpenEdgeTypeMappingSource : RelationalTypeMappingSource
             }
 
             if (_storeTypeMappings.TryGetValue(storeTypeName, out var mapping)
-             || _storeTypeMappings.TryGetValue(storeTypeNameBase, out mapping))
+             || _storeTypeMappings.TryGetValue(storeTypeNameBase ?? "", out mapping))
             {
                 return clrType == null || mapping.ClrType == clrType
                     ? mapping
@@ -130,39 +130,32 @@ public class OpenEdgeTypeMappingSource : RelationalTypeMappingSource
             }
         }
 
-        if (clrType != null)
+        if (clrType == null) return null;
+        if (_clrTypeMappings.TryGetValue(clrType, out var clrMapping))
         {
-            if (_clrTypeMappings.TryGetValue(clrType, out var mapping))
-            {
-                return mapping;
-            }
-
-            if (clrType == typeof(string))
-            {
-                var isAnsi = mappingInfo.IsUnicode == false;
-                var isFixedLength = mappingInfo.IsFixedLength == true;
-                var baseName = isFixedLength ? "CHAR" : "VARCHAR";
-                var maxSize = VarcharMaxSize;
-
-                var size = (int?)(mappingInfo.Size ?? maxSize);
-                if (size > maxSize)
-                {
-                    size = null;
-                }
-
-                var dbType = isAnsi
-                    ? (isFixedLength ? DbType.AnsiStringFixedLength : DbType.AnsiString)
-                    : (isFixedLength ? DbType.StringFixedLength : (DbType?)null);
-
-                var storeType = $"{baseName}({(size == null ? "max" : size.ToString())})";
-                return new StringTypeMapping(
-                    storeType,
-                    dbType,
-                    !isAnsi,
-                    size);
-            }
+            return clrMapping;
         }
 
-        return null;
+        if (clrType != typeof(string)) return null;
+        var isAnsi = mappingInfo.IsUnicode == false;
+        var isFixedLength = mappingInfo.IsFixedLength == true;
+        var baseName = isFixedLength ? "CHAR" : "VARCHAR";
+        var size = (int?)(mappingInfo.Size ?? VARCHAR_MAX_SIZE);
+        if (size > VARCHAR_MAX_SIZE)
+        {
+            size = null;
+        }
+
+        var dbType = isAnsi
+            ? (isFixedLength ? DbType.AnsiStringFixedLength : DbType.AnsiString)
+            : (isFixedLength ? DbType.StringFixedLength : (DbType?)null);
+
+        var storeType = $"{baseName}({(size == null ? "max" : size.ToString())})";
+        return new StringTypeMapping(
+            storeType,
+            dbType,
+            !isAnsi,
+            size);
+
     }
 }

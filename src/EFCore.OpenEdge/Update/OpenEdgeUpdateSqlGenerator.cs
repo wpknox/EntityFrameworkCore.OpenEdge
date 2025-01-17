@@ -13,7 +13,7 @@ public class OpenEdgeUpdateSqlGenerator(UpdateSqlGeneratorDependencies dependenc
 {
     protected void AppendValues(StringBuilder commandStringBuilder, IReadOnlyList<IColumnModification> operations)
     {
-        bool useLiterals = true;
+        // const bool useLiterals = true;
 
         if (operations.Count > 0)
         {
@@ -22,17 +22,17 @@ public class OpenEdgeUpdateSqlGenerator(UpdateSqlGeneratorDependencies dependenc
                 .AppendJoin(
                     operations,
                     SqlGenerationHelper,
-                    (sb, o, helper) =>
+                    (sb, o, _) =>
                     {
-                        if (useLiterals)
-                        {
-                            AppendSqlLiteral(sb, o.Value, o.Property);
-                        }
-                        else
-                        {
-                            // Use '?' rather than named parameters
-                            AppendParameter(sb, o);
-                        }
+                        AppendSqlLiteral(sb, o.Value, o.Property);
+                        // if (useLiterals)
+                        // {
+                        // }
+                        // else
+                        // {
+                        //     // Use '?' rather than named parameters
+                        //     AppendParameter(sb, o);
+                        // }
                     })
                 .Append(')');
         }
@@ -93,8 +93,7 @@ public class OpenEdgeUpdateSqlGenerator(UpdateSqlGeneratorDependencies dependenc
         else
         {
             commandStringBuilder.Append(" = ");
-            if (!columnModification.UseCurrentValueParameter
-                && !columnModification.UseOriginalValueParameter)
+            if (columnModification is { UseCurrentValueParameter: false, UseOriginalValueParameter: false })
             {
                 base.AppendWhereCondition(commandStringBuilder, columnModification, useOriginalValue);
             }

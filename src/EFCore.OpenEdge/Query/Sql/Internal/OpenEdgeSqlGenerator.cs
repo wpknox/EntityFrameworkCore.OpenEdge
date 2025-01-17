@@ -28,7 +28,7 @@ public class OpenEdgeSqlGenerator(QuerySqlGeneratorDependencies dependencies) : 
         // selecting a single row that we know will always exist; the metaschema
         // record for the _File metaschema table itself.
         if (_existsConditional)
-            Sql.Append(@" FROM pub.""_File"" f WHERE f.""_File-Name"" = '_File'");
+            Sql.Append(""" FROM pub."_File" f WHERE f."_File-Name" = '_File'""");
 
         _existsConditional = false;
 
@@ -45,7 +45,7 @@ public class OpenEdgeSqlGenerator(QuerySqlGeneratorDependencies dependencies) : 
         // so we SELECT from the _File metaschema table that always exists,
         // selecting a single row that we know will always exist; the metaschema
         // record for the _File metaschema table itself.
-        Sql.AppendLine(@"(SELECT 1 FROM pub.""_File"" f WHERE f.""_File-Name"" = '_File' AND EXISTS (");
+        Sql.AppendLine("""(SELECT 1 FROM pub."_File" f WHERE f."_File-Name" = '_File' AND EXISTS (""");
 
         using (Sql.Indent())
         {
@@ -61,16 +61,13 @@ public class OpenEdgeSqlGenerator(QuerySqlGeneratorDependencies dependencies) : 
 
     protected override void GenerateTop(SelectExpression selectExpression)
     {
-        if (selectExpression.Limit != null
-            && selectExpression.Offset == null)
-        {
-            // OpenEdge doesn't allow braces around the limit
-            Sql.Append("TOP ");
+        if (selectExpression.Limit == null || selectExpression.Offset != null) return;
+        // OpenEdge doesn't allow braces around the limit
+        Sql.Append("TOP ");
 
-            Visit(selectExpression.Limit);
+        Visit(selectExpression.Limit);
 
-            Sql.Append(" ");
-        }
+        Sql.Append(" ");
     }
 
     protected override Expression VisitConstant(ConstantExpression constantExpression)

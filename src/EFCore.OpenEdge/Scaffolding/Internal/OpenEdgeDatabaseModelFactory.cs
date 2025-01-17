@@ -15,7 +15,7 @@ namespace EntityFrameworkCore.OpenEdge.Scaffolding.Internal;
 
 public class OpenEdgeDatabaseModelFactory(IDiagnosticsLogger<DbLoggerCategory.Scaffolding> logger) : IDatabaseModelFactory
 {
-    protected internal const string DatabaseModelDefaultSchema = "pub";
+    protected internal const string DATABASE_MODEL_DEFAULT_SCHEMA = "pub";
     private readonly IDiagnosticsLogger<DbLoggerCategory.Scaffolding> _logger = logger;
 
     public DatabaseModel Create(string connectionString, DatabaseModelFactoryOptions options)
@@ -36,7 +36,7 @@ public class OpenEdgeDatabaseModelFactory(IDiagnosticsLogger<DbLoggerCategory.Sc
 
         try
         {
-            databaseModel.DefaultSchema = DatabaseModelDefaultSchema;
+            databaseModel.DefaultSchema = DATABASE_MODEL_DEFAULT_SCHEMA;
             GetTables(connection, null, databaseModel);
             return databaseModel;
         }
@@ -68,7 +68,7 @@ public class OpenEdgeDatabaseModelFactory(IDiagnosticsLogger<DbLoggerCategory.Sc
 
                 var table = new DatabaseTable
                 {
-                    Schema = DatabaseModelDefaultSchema,
+                    Schema = DATABASE_MODEL_DEFAULT_SCHEMA,
                     Name = name
                 };
 
@@ -110,7 +110,7 @@ public class OpenEdgeDatabaseModelFactory(IDiagnosticsLogger<DbLoggerCategory.Sc
         foreach (var tableColumnGroup in tableColumnGroups)
         {
             var tableName = tableColumnGroup.Key;
-            var table = databaseModel.Tables.Single(t => t.Schema == DatabaseModelDefaultSchema && t.Name == tableName);
+            var table = databaseModel.Tables.Single(t => t.Schema == DATABASE_MODEL_DEFAULT_SCHEMA && t.Name == tableName);
 
             var primaryKey = new DatabasePrimaryKey
             {
@@ -128,7 +128,6 @@ public class OpenEdgeDatabaseModelFactory(IDiagnosticsLogger<DbLoggerCategory.Sc
                 var isIdentity = dataRecord.GetValueOrDefault<long?>("identity") != null;
                 var defaultValue = !isIdentity ? dataRecord.GetValueOrDefault<object>("_initial") : null;
 
-                var storeType = dataTypeName;
                 if (string.IsNullOrWhiteSpace(defaultValue?.ToString()))
                 {
                     defaultValue = null;
@@ -138,19 +137,17 @@ public class OpenEdgeDatabaseModelFactory(IDiagnosticsLogger<DbLoggerCategory.Sc
                 {
                     Table = table,
                     Name = columnName,
-                    StoreType = storeType,
+                    StoreType = dataTypeName,
                     IsNullable = isNullable,
                     DefaultValueSql = defaultValue?.ToString(),
                     ValueGenerated = default
                 });
 
 
-                if (isIdentity)
-                {
-                    var column = table.Columns.FirstOrDefault(c => c.Name == columnName)
-                                 ?? table.Columns.FirstOrDefault(c => c.Name.Equals(columnName, StringComparison.OrdinalIgnoreCase));
-                    primaryKey.Columns.Add(column);
-                }
+                if (!isIdentity) continue;
+                var column = table.Columns.FirstOrDefault(c => c.Name == columnName)
+                             ?? table.Columns.FirstOrDefault(c => c.Name.Equals(columnName, StringComparison.OrdinalIgnoreCase));
+                primaryKey.Columns.Add(column);
             }
 
             // OpenEdge supports having tables with no primary key

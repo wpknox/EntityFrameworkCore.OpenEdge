@@ -7,10 +7,10 @@ namespace EntityFrameworkCore.OpenEdge.Query.ExpressionTranslators.Internal;
 
 public class OpenEdgeCompositeMemberTranslator : RelationalMemberTranslatorProvider
 {
-    private static readonly List<Type> _translatorsMethods
+    private static readonly List<Type> s_translatorsMethods
         = OpenEdgeCompositeMethodCallTranslator.GetTranslatorMethods<IMemberTranslator>().ToList();
 
     public OpenEdgeCompositeMemberTranslator(RelationalMemberTranslatorProviderDependencies dependencies)
         : base(dependencies)
-        => AddTranslators(_translatorsMethods.Select(type => (IMemberTranslator)Activator.CreateInstance(type)));
+        => AddTranslators(s_translatorsMethods.Select(type => (IMemberTranslator)Activator.CreateInstance(type)));
 }

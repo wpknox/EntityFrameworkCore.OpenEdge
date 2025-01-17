@@ -33,23 +33,20 @@ public class OpenEdgeExtractingExpressionVisitor : ExpressionVisitor
 
     protected Expression VisitNewMember(MemberExpression memberExpression)
     {
-        if (memberExpression.Expression is ConstantExpression constant
-            && constant.Value != null)
+        if (memberExpression.Expression is not ConstantExpression constant || constant.Value == null) return base.VisitMember(memberExpression);
+        switch (memberExpression.Member.MemberType)
         {
-            switch (memberExpression.Member.MemberType)
-            {
-                case MemberTypes.Field:
-                    return Expression.Constant(constant.Value.GetType().GetField(memberExpression.Member.Name).GetValue(constant.Value));
+            case MemberTypes.Field:
+                return Expression.Constant(constant.Value.GetType().GetField(memberExpression.Member.Name)?.GetValue(constant.Value));
 
-                case MemberTypes.Property:
-                    var propertyInfo = constant.Value.GetType().GetProperty(memberExpression.Member.Name);
-                    if (propertyInfo == null)
-                    {
-                        break;
-                    }
+            case MemberTypes.Property:
+                var propertyInfo = constant.Value.GetType().GetProperty(memberExpression.Member.Name);
+                if (propertyInfo == null)
+                {
+                    break;
+                }
 
-                    return Expression.Constant(propertyInfo.GetValue(constant.Value));
-            }
+                return Expression.Constant(propertyInfo.GetValue(constant.Value));
         }
         return base.VisitMember(memberExpression);
     }

@@ -1,8 +1,9 @@
-﻿using EntityFrameworkCore.OpenEdge.Infrastructure.Internal;
+﻿using System;
+using EntityFrameworkCore.OpenEdge.Infrastructure.Internal;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using System;
 
-namespace Microsoft.EntityFrameworkCore;
+namespace EntityFrameworkCore.OpenEdge.Extensions;
 
 public static class OpenEdgeDbContextOptionsBuilderExtensions
 {
